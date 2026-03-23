@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os/exec"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -18,6 +19,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			go func() {
+				exec.Command("bash", "deploy.sh").Run()
+			}()
+			w.Write([]byte("Deploy triggered"))
+		}
+	})
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
