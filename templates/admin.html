@@ -1,0 +1,35 @@
+<script src="https://cdn.tailwindcss.com"></script>
+
+<h1 class="text-2xl font-bold text-center mt-10 mb-5">Admin Dashboard</h1>
+
+<div class="max-w-4xl mx-auto">
+
+<form action="/add-user" method="POST" class="mb-5">
+    <input name="username" placeholder="Username" class="border p-2">
+    <input name="email" placeholder="Email" class="border p-2">
+    <input name="password" placeholder="Password" class="border p-2">
+    <button class="bg-green-500 text-white px-3 py-2">Tambah</button>
+</form>
+
+<table class="w-full border">
+<tr>
+    <th>ID</th>
+    <th>Username</th>
+    <th>Email</th>
+    <th>Aksi</th>
+</tr>
+
+{{range .}}
+<tr class="text-center border">
+    <td>{{.ID}}</td>
+    <td>{{.Username}}</td>
+    <td>{{.Email}}</td>
+    <td>
+        <a href="/edit-user?id={{.ID}}" class="bg-yellow-500 text-white px-2">Edit</a>
+        <a href="/delete-user?id={{.ID}}" class="bg-red-500 text-white px-2">Hapus</a>
+    </td>
+</tr>
+{{end}}
+
+</table>
+</div>

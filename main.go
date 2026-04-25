@@ -13,6 +13,12 @@ import (
 
 var db *sql.DB
 
+type User struct {
+	ID       int
+	Username string
+	Email    string
+}
+
 func main() {
 	var err error
 	db, err = sql.Open("mysql", "asep:281205@tcp(127.0.0.1:3306)/app_db")
@@ -20,6 +26,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// webhook CI/CD
 	http.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			go func() {
@@ -29,12 +36,17 @@ func main() {
 		}
 	})
 
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	// static file
+	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
 
+	// routes
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/register", registerHandler)
 	http.HandleFunc("/dashboard", dashboardHandler)
+	http.HandleFunc("/admin", adminHandler)
+	http.HandleFunc("/add", addUserHandler)
+	http.HandleFunc("/delete", deleteUserHandler)
 
 	fmt.Println("Server running on :8080")
 	http.ListenAndServe(":8080", nil)
@@ -83,6 +95,62 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func dashboardHandler(w http.ResponseWriter, r *http.Request) {
+	rows, err := db.Query("SELECT id, username, email FROM users")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var users []User
+
+	for rows.Next() {
+		var u User
+		rows.Scan(&u.ID, &u.Username, &u.Email)
+		users = append(users, u)
+	}
+
 	tmpl, _ := template.ParseFiles("templates/dashboard.html")
-	tmpl.Execute(w, nil)
+	tmpl.Execute(w, users)
+}
+
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	rows, err := db.Query("SELECT id, username, email FROM users")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var users []User
+
+	for rows.Next() {
+		var u User
+		rows.Scan(&u.ID, &u.Username, &u.Email)
+		users = append(users, u)
+	}
+
+	tmpl, _ := template.ParseFiles("templates/admin.html")
+	tmpl.Execute(w, users)
+}
+
+func addUserHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		username := r.FormValue("username")
+		email := r.FormValue("email")
+		password := r.FormValue("password")
+
+		db.Exec("INSERT INTO users(username,email,password) VALUES(?,?,?)",
+			username, email, password)
+	}
+
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+
+	db.Exec("DELETE FROM users WHERE id=?", id)
+
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
